@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KERNEL_SECURITY_CHECK_FAILURE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            overflow: hidden;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: none;
+        }
+
+        /* Efek Glitch / Rusak Parah */
+        .glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.05);
+            pointer-events: none;
+            z-index: 99;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.9; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        .bsod {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0078d7;
+            color: #fff;
+            padding: 50px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            z-index: 9999;
+        }
+
+        .bsod h1 {
+            font-size: 80px;
+            font-weight: normal;
+            margin-bottom: 20px;
+        }
+
+        .bsod p {
+            font-size: 24px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .bsod .code {
+            font-size: 16px;
+            margin-top: 40px;
+        }
+
+        .header {
+            border-bottom: 2px solid #ff0000;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            color: #ff0000;
+            font-weight: bold;
+        }
+
+        .terminal {
+            flex-grow: 1;
+            background-color: #000;
+            border: 1px solid #333;
+            padding: 10px;
+            overflow-y: hidden;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #ff3333;
+            margin: 10px 0;
+        }
+
+        .code-line {
+            margin-bottom: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .error-popup {
+            background: #990000;
+            color: #fff;
+            border: 2px solid #ff0000;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            animation: flashAlert 0.1s infinite alternate;
+        }
+
+        @keyframes flashAlert {
+            0% { background: #660000; }
+            100% { background: #cc0000; }
+        }
+
+        /* Tombol Trigger Audio */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+
+        .modal-content {
+            background: #110000;
+            border: 2px solid #ff0000;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 0 40px #ff0000;
+        }
+
+        .modal-content h2 {
+            color: #ff0000;
+            margin-bottom: 15px;
+        }
+
+        .modal-content button {
+            background: #ff0000;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glitch-overlay"></div>
+
+    <!-- Layar BSOD (Blue Screen) Palsu yang muncul di akhir -->
+    <div class="bsod" id="bsodScreen">
+        <h1>:(</h1>
+        <p>Perangkat Anda mengalami masalah dan harus dimulai ulang. Kami hanya mengumpulkan beberapa info error, lalu kami akan merurtnkannya untuk Anda.</p>
+        <p id="bsodProgress">0% selesai</p>
+        <div class="code">
+            <p>Jika ingin tahu lebih lanjut, Anda dapat mencari secara online nanti untuk error ini: <strong>CRITICAL_PROCESS_DIED</strong></p>
+        </div>
+    </div>
+
+    <!-- Modal Awal untuk memicu Audio & Prank -->
+    <div class="modal-overlay" id="startModal">
+        <div class="modal-content">
+            <h2>⚠️ FATAL EXCEPTION 0x0000007B ⚠️</h2>
+            <p style="color: #bbb; margin-bottom: 20px; font-size: 13px;">Klik untuk memulihkan sektor memori yang rusak.</p>
+            <button onclick="startNightmare()">RECOVERY MEMORY</button>
+        </div>
+    </div>
+
+    <div class="header">
+        <div>[HAL_INITIALIZATION_FAILED // EXCEPTION_ACCESS_VIOLATION]</div>
+        <div id="countdown" style="color: #ff0000;">CRITICAL_TIMER: 00:15</div>
+    </div>
+
+    <div class="error-popup" id="errorPopup">
+        ⚠️ ERROR 0xC000021A: SYSTEM PROCESS TERMINATED UNEXPECTEDLY ⚠️
+    </div>
+
+    <div class="terminal" id="terminal">
+        <div class="code-line">> [SYSTEM_HALT] Memuat ulang modul kernel mentah...</div>
+        <div class="code-line">> Mengalokasikan ulang memori fisik... [GAGAL: 0x8007000E]</div>
+    </div>
+
+    <div style="font-size: 11px; color: #666; text-align: center;">
+        Physical Address Extension (PAE) detected. Memory dump in progress...
+    </div>
+
+    <script>
+        // Efek Suara Glitch / Error Kasar menggunakan Web Audio API
+        function playErrorSound(audioCtx) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            // Frekuensi acak yang bikin kepala pusing / suara error hardware rusak
+            osc.frequency.setValueAtTime(Math.random() * 300 + 100, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(Math.random() * 800 + 200, audioCtx.currentTime + 0.05);
+            
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function startNightmare() {
+            document.getElementById('startModal').style.display = 'none';
+
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+
+            // Bunyikan suara error beruntun yang bikin panik
+            const soundInterval = setInterval(() => {
+                playErrorSound(audioCtx);
+            }, 120);
+
+            // Baris teks error log yang sangat teknis & mencekam
+            const terminal = document.getElementById('terminal');
+            const logs = [
+                "CRITICAL_STRUCTURE_CORRUPTION (ntoskrnl.exe)",
+                "Peringatan: Sektor SSD/HDD mengalami kegagalan baca/tulis total.",
+                "Memaksa pembersihan cache registry root... [BERBAHAYA]",
+                "Mengakses direktori tersembunyi: /system/data/secure_keys...",
+                "Mendeteksi upaya peretasan masuk (Inbound Exploit CVE-2026-9921).",
+                "Menghapus kunci enkripsi data pengguna...",
+                "PERINGATAN KERAS: Motherboard mengalami overheat (89°C).",
+                "Menghancurkan sisa-sisa sektor penyimpanan untuk mencegah kebocoran data...",
+                "KERNEL_PANIC: Fatal exception di alamat 0x00007FF8B2...",
+                "Sistem operasi dimatikan secara paksa oleh BIOS..."
+            ];
+
+            let index = 0;
+            const logInterval = setInterval(() => {
+                if (index < logs.length) {
+                    const div = document.createElement('div');
+                    div.className = 'code-line';
+                    div.style.color = index % 2 === 0 ? '#ff0000' : '#ff5555';
+                    div.innerText = "> " + logs[index];
+                    terminal.appendChild(div);
+                    terminal.scrollTop = terminal.scrollHeight;
+                    index++;
+                } else {
+                    clearInterval(logInterval);
+                    clearInterval(soundInterval);
+
+                    // MUNCULKAN BLUE SCREEN OF DEATH (BSOD) SETELAH TERMINAL SELESAI
+                    document.getElementById('bsodScreen').style.display = 'block';
+                    
+                    // Simulasi persen loading BSOD
+                    let percent = 0;
+                    const bsodInterval = setInterval(() => {
+                        percent += Math.floor(Math.random() * 15) + 5;
+                        if (percent >= 100) {
+                            percent = 100;
+                            clearInterval(bsodInterval);
+                            
+                            // SELESAI: Ungkapkan bahwa ini Prank
+                            setTimeout(() => {
+                                document.getElementById('bsodScreen').style.display = 'none';
+                                document.body.innerHTML = `
+                                    <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#111;color:#00ff00;flex-direction:column;text-align:center;font-family:monospace;padding:20px;">
+                                        <h1 style="font-size:40px;margin-bottom:20px;">wkwkwk PANIK YA?! 😂🫵</h1>
+                                        <p style="color:#fff;font-size:18px;margin-bottom:10px;">Aman bro, perangkat lu nggak rusak kok, itu cuma PRANK ekstrem!</p>
+                                        <p style="color:#888;font-size:13px;">Silakan refresh atau tutup tab ini ya.</p>
+                                    </div>
+                                `;
+                            }, 2500);
+                        }
+                        document.getElementById('bsodProgress').innerText = percent + '% selesai';
+                    }, 400);
+                }
+            }, 600);
+        }
+    </script>
+</body>
+</html>
